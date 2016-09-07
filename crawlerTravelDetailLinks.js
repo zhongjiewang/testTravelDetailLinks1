@@ -22,7 +22,23 @@ log4js.configure({
 });
 
 
-//nihao
+/************数据库存储*************/
+var AsyncStreamer = require('async-streamer');
+
+const crawlerDatabase = 'mongodb://localhost:27017/travelCrawler',
+    
+     collectionNameOfTravelDetailLinks = 'travelDetailLinks';
+
+
+var asyncRecordStreamer = new AsyncStreamer({
+    url: crawlerDatabase,
+    collection: collectionNameOfTravelDetailLinks
+});
+
+asyncRecordStreamer.start();
+
+
+
 /*********爬取页面********/
 
 var allPagesNumber;
@@ -66,7 +82,7 @@ crawler.configure({
     },
     onAllFinished: function() {
         console.log('All crawling are finished');
-        // asyncRecordStreamer.stop();
+        asyncRecordStreamer.stop();
         console.log('请求并解析成功的页面的数量'+ pageNumbersArr.length + '数组'+ pageNumbersArr)
     }
 })
@@ -86,22 +102,20 @@ function  parseAndRequestAllOfTravelPages(crawler, content) {
         
         var allTravelPagesNumber = parseInt(numbersTemp/10) + 1
         
-        assert.equal(8238,allTravelPagesNumber);
-
         var pageRegExp = /page=1/ig;
 
          //发起所有页面的网络请求
         for (let  i = 2; i <= allTravelPagesNumber; i++) {
-             crawler.enqueueRequest({url: startPage.replace(pageRegExp,'page='+ i)}, 1);
+             crawler.enqueueRequest({url: startPage.replace(pageRegExp,`page=${i}`)}, 1);
          }
 
       return allTravelPagesNumber;   
 }
 
 
-var  domesticUrlRegExp = /<a href="http:\/\/4travel\.jp\/domestic\/area\/.{0,100}" class=(("ico_kankospot")|("ico_transport")|("ico_restaurant"))>\n(.{0,70})\n<em><\/em>\n<\/a>/ig;
+var  domesticUrlRegExp = /<a href="http:\/\/4travel\.jp\/domestic\/area\/.*?" class=(("ico_kankospot")|("ico_transport")|("ico_restaurant"))>\n(.*?)\n<em><\/em>\n<\/a>/ig;
 
-var  spotUrlRegExp = /<a href="(http:\/\/spot4travel\.jp\/landmark\/dm\/)([0-9]{0,15})" class="ico_kankospot" target="_blank">\n(.{0,50})\n<em><\/em>\n<\/a>/ig;
+var  spotUrlRegExp = /<a href="(http:\/\/spot4travel\.jp\/landmark\/dm\/)([0-9]*?)" class="ico_kankospot" target="_blank">\n(.*?)\n<em><\/em>\n<\/a>/ig;
 
 var pageNumbersArr = [];
 
@@ -124,9 +138,12 @@ function parseAndStreamTravelDetailLinks (content,pageUrl,allPagesNumber) {
          //解析出要存储的信息,放入一个对象中   
         let objTravel1 = sliceDomesticUrl(domesticUrl,page_number);
         console.log(objTravel1);
+
+        //写入到数据库中
+        asyncRecordStreamer.commit(objTravel1);
+
         urlArr.push(domesticUrl[0])
     }
-
 
     //提取出该页面下景点链接中spot类型的url
     var spotUrl;
@@ -134,17 +151,19 @@ function parseAndStreamTravelDetailLinks (content,pageUrl,allPagesNumber) {
 
         //解析出要存储的信息,放入一个对象中
         let objTravel2 = sliceSpotUrl(spotUrl,page_number);
-        console.info(objTravel2)
+        console.info(objTravel2.travelName)
+
+        //写入到数据库中
+        asyncRecordStreamer.commit(objTravel2);
+
         urlArr.push(spotUrl[0])
     } 
 
     
     //断言每页中10个,不等于10就直接报错,以求不漏掉一个信息
-    if(page_number==1008){
-
-        assert.equal(9,urlArr.length);
-    }else if(page_number==allPagesNumber){
-        assert.equal(3,urlArr.length)
+    if(page_number==allPagesNumber){
+        // assert.equal(3,urlArr.length)
+        console.warn('这是最后一页了')
     }else {
         assert.equal(10,urlArr.length);
 
@@ -174,6 +193,9 @@ function sliceSpotUrl(spotUrl,page_number){
     var _page_number = page_number
 
 
+let  temp = `http://4travel.jp/search/shisetsu/dm?category_group=kankospot&page=${page_number}&sa=%E5%9B%BD%E5%86%85`
+
+
     obj = {
         crawler:'TravelDetailLinks',
         website:'4travel.jp',
@@ -182,8 +204,8 @@ function sliceSpotUrl(spotUrl,page_number){
         id:_id,
         href:_url,
         travelName:_name,
-        pageNumber:_page_number,
-        crawledAt: new Date()
+        refUrl:temp,
+        crawledAt: new Date() 
     }
 
     return obj;
@@ -209,9 +231,12 @@ function sliceDomesticUrl (domesticUrl,page_number) {
     //景点名字name
     var _name = domesticUrl[5];
 
-
     //景点所在的页面pageNumber
-    var _page_number = page_number;
+    // var _page_number = page_number;
+
+
+let  temp = `http://4travel.jp/search/shisetsu/dm?category_group=kankospot&page=${page_number}&sa=%E5%9B%BD%E5%86%85`
+
 
     obj = {
         crawler:'TravelDetailLinks',
@@ -221,7 +246,7 @@ function sliceDomesticUrl (domesticUrl,page_number) {
         id:_id,
         href:_url,
         travelName:_name,
-        pageNumber:_page_number,
+        refUrl:temp,
         crawledAt: new Date()
     }
 
