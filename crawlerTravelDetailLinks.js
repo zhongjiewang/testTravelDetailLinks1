@@ -22,7 +22,7 @@ log4js.configure({
 });
 
 
-
+//nihao
 /*********爬取页面********/
 
 var allPagesNumber;
