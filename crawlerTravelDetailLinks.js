@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 
-const userAgent = 'crawler@tourank';
-const startPage = 'http://4travel.jp/search/shisetsu/dm?category_group=kankospot&page=1&sa=%E5%9B%BD%E5%86%85'
+const userAgent = 'crawler';
+const startPage = 'http://";
 
 
 var Crawler = require('js-crawler');
