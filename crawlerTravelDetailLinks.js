@@ -2,7 +2,7 @@
 'use strict';
 
 const userAgent = 'crawler';
-const startPage = 'http://";
+const startPage = "http://";
 
 
 var Crawler = require('js-crawler');
@@ -54,6 +54,7 @@ crawler.configure({
         // console.warn(url)
         return true;
     },
+    //55555555555
     onSuccess: function(page) {
 
         // console.info('请求成功%s', page.actualUrl);
@@ -195,6 +196,9 @@ function sliceSpotUrl(spotUrl,page_number){
 
 let  temp = `http://4travel.jp/search/shisetsu/dm?category_group=kankospot&page=${page_number}&sa=%E5%9B%BD%E5%86%85`
 
+console.log('2222222222222222222');
+console.log('3333333333333');
+// >>>>>>> 5d2011f... 3
 
     obj = {
         crawler:'TravelDetailLinks',
